@@ -1,0 +1,24 @@
+/**
+ * split 12-bit into lower and upper bits
+ */
+
+CHIP Split12 {
+    IN in[12];
+    OUT upper[3], lower[9];
+
+    PARTS:
+    // Put your code here:
+    And(a=in[0], b=in[0], out=lower[0]);
+    And(a=in[1], b=in[1], out=lower[1]);
+    And(a=in[2], b=in[2], out=lower[2]);
+    And(a=in[3], b=in[3], out=lower[3]);
+    And(a=in[4], b=in[4], out=lower[4]);
+    And(a=in[5], b=in[5], out=lower[5]);
+    And(a=in[6], b=in[6], out=lower[6]);
+    And(a=in[7], b=in[7], out=lower[7]);
+    And(a=in[8], b=in[8], out=lower[8]);
+
+    And(a=in[9], b=in[9], out=upper[0]);
+    And(a=in[10], b=in[10], out=upper[1]);
+    And(a=in[11], b=in[11], out=upper[2]);
+}
