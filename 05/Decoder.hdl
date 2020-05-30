@@ -1,0 +1,29 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+
+/**
+ * decode instruction
+ * instruction[16] is
+ * i xx a | cccc | cc dd | d jjj
+ */
+
+CHIP Decoder {
+    IN in[16];
+    OUT a, c1, c2, c3, c4, c5, c6, d1, d2, d3, j1, j2, j3;
+
+    PARTS:
+    Or16(a=in, b=in, out[12]=a);
+    Or16(a=in, b=in, out[11]=c1);
+    Or16(a=in, b=in, out[10]=c2);
+    Or16(a=in, b=in, out[9]=c3);
+    Or16(a=in, b=in, out[8]=c4);
+    Or16(a=in, b=in, out[7]=c5);
+    Or16(a=in, b=in, out[6]=c6);
+    Or16(a=in, b=in, out[5]=d1);
+    Or16(a=in, b=in, out[4]=d2);
+    Or16(a=in, b=in, out[3]=d3);
+    Or16(a=in, b=in, out[2]=j1);
+    Or16(a=in, b=in, out[1]=j2);
+    Or16(a=in, b=in, out[0]=j3);
+}
