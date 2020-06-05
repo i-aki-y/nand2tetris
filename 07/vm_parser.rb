@@ -68,6 +68,10 @@ class Parser
     @cur_arg2
   end
 
+  def line
+    @cur_line
+  end
+
 end
 
 
@@ -380,11 +384,9 @@ class CodeWriter
            D=A
       EOS
     elsif segment == "static"
+      s = get_static_symbol(index)
       set_D = <<~EOS
-           @#{index}
-           D=A
-           @16
-           A=D+A
+           @#{s}
            D=M
       EOS
     else
@@ -433,22 +435,14 @@ class CodeWriter
               M=D
       EOS
     elsif segment == "static"
-
+      s = get_static_symbol(index)
       code = <<~EOS
-              @#{index}
-              D=A
-              @16
-              D=D+A
-              @R13
-              M=D
-
               @SP
               A=M-1
               D=M
               @SP
               M=M-1
-              @R13
-              A=M
+              @#{s}
               M=D
 
       EOS
@@ -521,6 +515,8 @@ class CodeWriter
       @SP
       A=M
       M=0
+      @SP
+      M=M+1
       @#{l_LOOP}
       0;JMP
       (#{l_END})
@@ -528,7 +524,7 @@ class CodeWriter
   end
 
   def make_call_func(func, n)
-    ret = get_func_label(func, "RETURN")
+    ret = get_return_label(func)
 
     code1 = [
       make_push_label(ret),
@@ -649,8 +645,14 @@ class CodeWriter
     func + "$" + label
   end
 
+  def get_return_label(func)
+    # return label should be unique for each call position
+    l = get_new_label("RETURN")
+    func + "$" + l
+  end
+
   def get_static_symbol(symbol)
-    @file_name + "." + symbol
+    @file_name + "." + symbol.to_s
   end
 
 end

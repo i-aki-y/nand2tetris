@@ -5,7 +5,8 @@ require './vm_parser'
 def trans_vm(vm_file, writer)
   codes = []
   parser = Parser.new({"input_path" => vm_file})
-  writer.set_file_name(vm_file)
+  fname = vm_file.basename(".*").to_s
+  writer.set_file_name(fname)
 
   while parser.has_more_command?
     parser.advance
@@ -53,7 +54,7 @@ def main
   input_path = params[:input_path]
 
   if input_path.directory?
-    vm_files = input_path.children.select{ |e| e.fnmatch("*.vm")}
+    vm_files = input_path.children.select{ |e| e.basename.fnmatch("*.vm")}
     out_fname = input_path.basename.sub_ext(".asm")
     output_path = input_path / out_fname
   else
