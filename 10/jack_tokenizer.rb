@@ -39,13 +39,31 @@ class Token
     @value = value
     @type = type
   end
+
+  def to_xml
+
+    case @type
+    when TokenType::KEYWORD
+      tag = "keyword"
+    when TokenType::SYMBOL
+      tag = "symbol"
+    when TokenType::IDENTIFIER
+      tag = "identifier"
+    when TokenType::INT_CONST
+      tag = "integerConstant"
+    when TokenType::STRING_CONST
+      tag = "stringConstant"
+    end
+
+    "<#{tag}> #{value} </#{tag}>"
+
+  end
 end
 
 
 class JackTokenizer
 
   def initialize()
-
   end
 
   def set_input(input)
@@ -207,5 +225,16 @@ class JackTokenizer
     else
       return Token.new(value: str, type: TokenType::IDENTIFIER)
     end
+  end
+
+  def dump_xml
+    xmls = ["<tokens>"]
+    while token = get_token
+      xmls.push(token.to_xml)
+    end
+
+    xmls.push("</tokens>")
+
+    return xmls.join("\n")
   end
 end
