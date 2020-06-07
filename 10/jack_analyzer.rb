@@ -7,7 +7,7 @@ def main
   opt = OptionParser.new
   params = Hash.new
   opt.on('-i [path]', 'Input file or directory path') {|v| params[:input_path] = Pathname(v) }
-  opt.on('-tokenize', 'Output tokenized file') {|v| params[:tokenize] = true }
+  opt.on('--tokenize', 'Output tokenized file') {|v| params[:tokenize] = true }
 
   opt.parse(ARGV)
 
@@ -24,12 +24,10 @@ def main
     raise "There isn't such a file #{input_path}"
   end
 
-  File.open(input_path, "r") do |f|
-    lines = f.readlines
-  end
+  input = get_input(input_path)
 
   tokenizer = JackTokenizer.new()
-  tokenizer.set_input(lines.join("\n"))
+  tokenizer.set_input(input)
 
   if is_tokenize
     xml = tokenizer.dump_xml
@@ -42,3 +40,13 @@ def main
 
 
 end
+
+def get_input(input_path)
+  File.open(input_path, "r") do |f|
+    lines = f.readlines
+    return lines.join("\n")
+  end
+
+end
+
+main
