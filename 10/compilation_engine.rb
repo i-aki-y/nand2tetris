@@ -186,7 +186,7 @@ class CompilationEngine
     add_tag("keyword", @token.value)
 
     get_token
-    if Types.include?(@token.value)
+    if Types.include?(@token.value) || @token.type == TokenType::IDENTIFIER
       add_type(@token.value)
     elsif @token.value == 'void'
       # void
@@ -425,7 +425,12 @@ class CompilationEngine
     end
     add_keyword("return", true)
 
-    add_symbol(";", false)
+    get_token
+    if @token.value != ";"
+      call_compile("compile_expression", "expression", true)
+    end
+
+    add_symbol(";", true)
 
   end
 
