@@ -129,7 +129,7 @@ class CompilationEngine
     end
 
     while is_subroutine_dec?(@token)
-      call_compile("compile_subroutine_dec", "SubroutineDec", true)
+      call_compile("compile_subroutine_dec", "subroutineDec", true)
       get_token
     end
 
@@ -369,7 +369,7 @@ class CompilationEngine
       call_compile("compile_expression", "expression", false)
 
       #]
-      add_symbol("]", false)
+      add_symbol("]", true)
 
       get_token
     end
@@ -511,7 +511,7 @@ class CompilationEngine
 
         call_compile("compile_expression", "expression", false)
 
-        add_symbol("]", false)
+        add_symbol("]", true)
 
       elsif @next_token.value == "(" || @next_token.value == "."
 
