@@ -12,26 +12,43 @@ class CompilationEngine
   def initialize(tokenizer)
     @tokenizer = tokenizer
     @xmls = []
-    @token
+    @token = nil
+    @next_token = nil
+  end
+
+  def reset(input)
+    @tokenizer.set_input(input)
+    @xmls = []
+    @token = nil
+    @next_token = nil
   end
 
   def compile
     get_token
     while @token
 
-      case token.type
-      when TokenType::KEYWORD
-        case Keywords[token.value]
-        when "CLASS"
-          compile_class
-        end
+      if @token.type == TokenType::KEYWORD
 
-      when TokenType::KEYWORD
+        case Keywords[@token.value]
+        when "CLASS"
+          call_compile("compile_class", "class", true)
+        when "STATIC", "FIELD"
+          call_compile("compile_class_var_dec", "classVarDec", true)
+        when "CONSTRUCTOR", "FUNCTION", "METHOD"
+          call_compile("compile_subroutine_dec", "subroutineDec", true)
+        when "VAR"
+          call_compile("compile_var_dec", "varDec", true)
+        end
+      else
+        raise "Compile error. Unknow top level token #{token.value} is given"
       end
 
       get_token
     end
+  end
 
+  def dump_xml
+    @xmls.join("\n")
   end
 
   def get_token
@@ -40,24 +57,56 @@ class CompilationEngine
     else
       @token = @next_token
     end
+    p @token
     @next_token = @tokenizer.get_token
   end
 
   def get_valid_token(expect_type)
-    @token = @tokenizer.get_token
-    if token.type != expect_type
-      raise "Comile error:\n #{token} is given after \n #{xml}"
+    get_token
+    if @token.type != expect_type
+      raise "Comile error:\n #{@token.value} is given after \n #{@xmls}"
     end
   end
 
   def call_compile(name, tag_name, has_token)
     @xmls.push("<#{tag_name}>")
     send(name, has_token)
-    @xml.push("<#{tag_name}>")
+    @xmls.push("</#{tag_name}>")
   end
 
   def add_tag(tag, value)
-    @xmls.push("<#{tag}> #{value} </#{tag}>")
+    @xmls.push("<#{tag}> #{value.encode({:xml => :text})} </#{tag}>")
+  end
+
+  def add_id(has_token)
+    if !has_token
+      get_token
+    end
+    if @token.type != TokenType::IDENTIFIER
+      raise "Compile error, non identifier token #{@token.value} is given"
+    end
+    @xmls.push(@token.to_xml)
+  end
+
+  def add_symbol(sym, has_token)
+    if !has_token
+      get_token
+    end
+    if @token.value != sym
+      raise "Compile error. #{@token.value} is given instead of #{sym}"
+    end
+    @xmls.push(@token.to_xml)
+  end
+
+  def add_keyword(keyword, has_token)
+    if !has_token
+      get_token
+    end
+    if @token.value != keyword
+      raise "Compile error. #{@token.value} is given instead of #{keyword}"
+    end
+    @xmls.push(@token.to_xml)
+
   end
 
   def compile_class(has_token)
@@ -65,14 +114,13 @@ class CompilationEngine
       get_token
     end
 
-    add_tag("keyword", "class")
+    add_keyword("class", true)
 
     # className
-    get_valid_token(TokenType::IDENTIFIER)
-    @xmls.push(@token.to_xml)
+    add_id(false)
+
     # {
-    get_valid_token(TokenType::SYMBOL)
-    @xmls.push(@token.to_xml)
+    add_symbol("{", false)
 
     get_token
     while is_class_var_dec?(@token)
@@ -86,8 +134,7 @@ class CompilationEngine
     end
 
     # }
-    get_valid_token(TokenType::SYMBOL)
-    @xml.push(@token.to_xml)
+    add_symbol("}", true)
 
   end
 
@@ -99,7 +146,7 @@ class CompilationEngine
     (!token.nil?) && ["constructor", "function", "method"].include?(token.value)
   end
 
-  def compile_class_var(has_token)
+  def compile_class_var_dec(has_token)
     if !has_token
       get_token
     end
@@ -111,26 +158,23 @@ class CompilationEngine
     add_type(@token.value)
 
     # varName
-    get_valid_token(TokenType::IDENTIFIER)
-    add_tag("identifier", @token.value)
+    add_id(false)
 
-    get_tokne
+    get_token
     while @token.value == ','
-      add_symbol(",")
+      add_symbol(",", true)
 
       # varName
-      get_token
-      get_valid_token(TokenType::IDENTIFIER)
-      add_tag("identifier", @token.value)
+      add_id(false)
 
       # next token
       get_token
     end
 
     if @token.value != ';'
-      raise "Comile error:\n #{token} is given after \n #{xml}"
+      raise "Comile error:\n #{@token.value} is given after \n #{@xmls}"
     else
-      add_symbol(";")
+      add_symbol(";", true)
     end
   end
 
@@ -139,34 +183,28 @@ class CompilationEngine
       get_token
     end
 
-    add_tag("keyward", @token.value)
+    add_tag("keyword", @token.value)
 
-    get_value
+    get_token
     if Types.include?(@token.value)
       add_type(@token.value)
     elsif @token.value == 'void'
       # void
-      add_tag("keyward", @token.value)
+      add_keyword("void", true)
     else
       raise "Unknow return type #{@token.value}"
     end
 
     # subroutineName
-    get_token
-    add_tag("identifier", @token.value)
+    add_id(false)
 
     # (
-    get_token
-    add_symbol("(")
+    add_symbol("(", false)
 
-    get_token
-    if @token.value != ")"
-      call_compile("compile_parameter_list", "parameterList", true)
-    end
+    call_compile("compile_parameter_list", "parameterList", false)
 
     # )
-    get_token
-    add_symbol(")")
+    add_symbol(")", true)
 
     call_compile("compile_subroutine_body", "subroutineBody", false)
 
@@ -175,7 +213,7 @@ class CompilationEngine
   def add_type(value)
     if Types.include?(value)
       # builtin type
-      add_tag("keyward", value)
+      add_tag("keyword", value)
     else
       # className
       add_tag("identifier", value)
@@ -189,8 +227,7 @@ class CompilationEngine
     end
 
     # {
-    get_valid_token(TokenType::SYMBOL)
-    add_symbol("{")
+    add_symbol("{", true)
 
     get_token
     while @token.value == 'var'
@@ -198,24 +235,10 @@ class CompilationEngine
       get_token
     end
 
-    while Statements.include?(@token.value)
-      case @token.value
-      when "let"
-        call_compile("compile_let", "letStatement", true)
-      when "if"
-        call_compile("compile_if", "ifStatement", true)
-      when "while"
-        call_compile("compile_while", "whileStatement", true)
-      when "do"
-        call_compile("compile_do", "doStatement", true)
-      when "return"
-        call_compile("compile_return", "returnStatement", true)
-      end
-      get_token
-    end
+    call_compile("compile_statements", "statements", true)
 
     # }
-    add_symbol("}")
+    add_symbol("}", true)
 
   end
 
@@ -224,21 +247,27 @@ class CompilationEngine
       get_token
     end
 
-    add_type(@token.value)
-    get_token
-
-    while @token.value == ','
-      add_symbol(",")
+    while @token.value != ")"
 
       # type
-      get_token
       add_type(@token.value)
-
       # varName
-      get_token
-      add_tag("identifier", @token.value)
-    end
+      add_id(false)
 
+      get_token
+      while @token.value == ','
+        add_symbol(",", true)
+
+        # type
+        get_token
+        add_type(@token.value)
+
+        # varName
+        add_id(false)
+
+        get_token
+      end
+    end
   end
 
   def compile_var_dec(has_token)
@@ -250,40 +279,55 @@ class CompilationEngine
       raise "Compile error. #{@token.value} is given instead of var"
     end
 
-    add_tag("keyword", @token.value)
+    add_keyword("var", true)
 
     # type
     get_token
     add_type(@token.value)
 
     # varName
-    get_token
-    add_tag("identifier", @token.value)
+    add_id(false)
 
     get_token
     while @token.value == ","
-      add_symbol(",")
+      add_symbol(",", true)
 
       # varName
-      get_token
-      add_tag("identifier", @token.value)
+      add_id(false)
 
       get_token
     end
 
     # ;
-    add_symbol(";")
+    add_symbol(";", true)
 
   end
 
   def compile_statements(has_token)
-
-  end
-
-
-  def compile_statement(has_token)
     if !has_token
       get_token
+    end
+
+    while Statements.include?(@token.value)
+
+      case @token.value
+      when "let"
+        call_compile("compile_let", "letStatement", true)
+        get_token
+      when "if"
+        call_compile("compile_if", "ifStatement", true)
+        get_token
+      when "while"
+        call_compile("compile_while", "whileStatement", true)
+        get_token
+      when "do"
+        call_compile("compile_do", "doStatement", true)
+        get_token
+      when "return"
+        call_compile("compile_return", "returnStatement", true)
+        get_token
+      end
+
     end
 
   end
@@ -296,12 +340,11 @@ class CompilationEngine
     if @token.value != "do"
       raise "Compile error. #{@token.value} is given instead of 'do'"
     end
-    add_tag("keyword", @token.value)
+    add_keyword("do", true)
 
-    call_compile("compile_subroutine_call", "subroutineCall", false)
+    add_subroutine_call(false)
 
-    get_token
-    add_symbol(";")
+    add_symbol(";", false)
 
   end
 
@@ -313,38 +356,35 @@ class CompilationEngine
     if @token.value != "let"
       raise "Compile error. #{@token.value} is given instead of 'let'"
     end
-    add_tag("keyword", @token.value)
+    add_keyword("let", true)
 
     # varName
-    get_token
-    add_tag("identifier", @token.value)
+    add_id(false)
 
     get_token
     if @token.value == '['
       # [
-      add_symbol("[")
+      add_symbol("[", true)
 
       call_compile("compile_expression", "expression", false)
 
       #]
-      get_token
-      add_symbol("]")
+      add_symbol("]", false)
 
       get_token
     end
 
     # =
-    add_symbol("=")
+    add_symbol("=", true)
 
     call_compile("compile_expression", "expression", false)
 
     # ;
-    get_token
-    add_symbol(";")
+    add_symbol(";", true)
 
   end
 
-  def compile_wile(has_token)
+  def compile_while(has_token)
     if !has_token
       get_token
     end
@@ -352,23 +392,20 @@ class CompilationEngine
     if @token.value != "while"
       raise "Compile error. #{@token.value} is given instead of 'while'"
     end
-    add_tag("keyword", @token.value)
 
-    get_token
-    add_symbol("(")
+    add_keyword("while", true)
+
+    add_symbol("(", false)
 
     call_compile("compile_expression", "expression", false)
 
-    get_token
-    add_symbol(")")
+    add_symbol(")", true)
 
-    get_token
-    add_symbol("{")
+    add_symbol("{", false)
 
     call_compile("compile_statements", "statements", false)
 
-    get_token
-    add_symbol("}")
+    add_symbol("}", true)
 
   end
 
@@ -381,15 +418,14 @@ class CompilationEngine
     if @token.value != "return"
       raise "Compile error. #{@token.value} is given instead of 'return'"
     end
-    add_tag("keyword", @token.value)
+    add_keyword("return", true)
 
     get_token
     if @token.value != ";"
       call_compile("compile_expression", "expression", true)
     end
 
-    get_token
-    add_symbol(";")
+    add_symbol(";", true)
 
   end
 
@@ -401,39 +437,33 @@ class CompilationEngine
     if @token.value != "if"
       raise "Compile error. #{@token.value} is given instead of 'if'"
     end
-    add_tag("keyword", @token.value)
+    add_keyword("if", true)
 
 
-    get_token
-    add_symbol("(")
+    add_symbol("(", false)
 
-    call_compile("compile_expression", "expression", true)
+    call_compile("compile_expression", "expression", false)
 
-    get_token
-    add_symbol(")")
+    add_symbol(")", true)
 
-    get_token
-    add_symbol("{")
+    add_symbol("{", false)
 
     call_compile("compile_statements", "statements", false)
 
-    get_token
-    add_symbol("}")
+    add_symbol("}", true)
 
-    get_token
-    if @token.value == "else"
-      add_tag("keyword", @token.value)
-      add_symbol("{")
+    if @next_token.value == "else"
+      get_token
+      add_keyword("else", true)
+
+      add_symbol("{", false)
 
       call_compile("compile_statements", "statements", false)
 
-      get_token
-      add_symbol("}")
+      add_symbol("}", true)
 
       get_token
     end
-
-    add_symbol(";")
 
   end
 
@@ -446,7 +476,8 @@ class CompilationEngine
 
     get_token
     while Ops.include?(@token.value)
-      call_compile("compile_term", "term", true)
+      add_tag("symbol", @token.value)
+      call_compile("compile_term", "term", false)
       get_token
     end
 
@@ -457,7 +488,6 @@ class CompilationEngine
       get_token
     end
 
-    get_token
     if @token.type == TokenType::INT_CONST ||
        @token.type == TokenType::STRING_CONST ||
        KeywordConst.include?(@token.value)
@@ -470,48 +500,59 @@ class CompilationEngine
 
     elsif @token.value == "("
 
-      add_symbol("(")
+      add_symbol("(", true)
       call_compile("compile_expression", "expression", false)
 
     elsif @token.type == TokenType::IDENTIFIER
 
-      add_tag("identifier", @token.value)
-
       if @next_token.value == "["
-        get_token
-        add_symbol("[")
+        add_id(true)
+        add_symbol("[", false)
 
         call_compile("compile_expression", "expression", false)
 
-        get_token
-        add_symbol("]")
+        add_symbol("]", false)
 
-      elsif @next_token.value == "("
-        get_token
-        add_symbol("(")
+      elsif @next_token.value == "(" || @next_token.value == "."
+
+        add_subroutine_call(true)
+
+      else
+
+        add_id(true)
+
+      end
+    end
+  end
+
+  def add_subroutine_call(has_token)
+    if !has_token
+      get_token
+    end
+
+    add_id(true)
+
+    get_token
+    if @token.value == "("
+      add_symbol("(", true)
 
         call_compile("compile_expression_list", "expressionList", false)
 
-        get_token
-        add_symbol(")")
+        add_symbol(")", true)
 
-      elsif @next_token.value == "."
-
-        get_token
-        add_symbol(".")
+    elsif @token.value == "."
+        add_symbol(".", true)
 
         get_token
         add_tag("identifier", @token.value)
 
-        get_token
-        add_symbol("(")
+        add_symbol("(", false)
 
         call_compile("compile_expression_list", "expressionList", false)
 
-        get_token
-        add_symbol(")")
-      end
+        add_symbol(")", true)
     end
+
   end
 
   def compile_expression_list(has_token)
@@ -522,22 +563,12 @@ class CompilationEngine
     if @token.value != ")"
       call_compile("compile_expression", "expression", true)
 
-      get_token
-      while @token.value != ","
-        add_symbol(",")
+      while @token.value == ","
+        add_symbol(",", true)
         call_compile("compile_expression", "expression", false)
 
-        get_token
       end
     end
-
-  end
-
-  def add_symbol(sym)
-    if @token.value != sym
-      raise "Compile error. #{@token.value} is given instead of #{sym}"
-    end
-    add_tag("symbol", sym)
   end
 
 end
