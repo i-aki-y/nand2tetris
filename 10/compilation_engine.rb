@@ -312,18 +312,23 @@ class CompilationEngine
 
       case @token.value
       when "let"
+        puts "stm: let"
         call_compile("compile_let", "letStatement", true)
         get_token
       when "if"
+        puts "stm: if"
         call_compile("compile_if", "ifStatement", true)
         get_token
       when "while"
+        puts "stm: while"
         call_compile("compile_while", "whileStatement", true)
         get_token
       when "do"
+        puts "stm: do"
         call_compile("compile_do", "doStatement", true)
         get_token
       when "return"
+        puts "stm: return"
         call_compile("compile_return", "returnStatement", true)
         get_token
       end
@@ -420,12 +425,7 @@ class CompilationEngine
     end
     add_keyword("return", true)
 
-    get_token
-    if @token.value != ";"
-      call_compile("compile_expression", "expression", true)
-    end
-
-    add_symbol(";", true)
+    add_symbol(";", false)
 
   end
 
@@ -461,8 +461,6 @@ class CompilationEngine
       call_compile("compile_statements", "statements", false)
 
       add_symbol("}", true)
-
-      get_token
     end
 
   end
@@ -497,11 +495,13 @@ class CompilationEngine
     elsif ["-", "~"].include?(@token.value)
 
       add_tag("symbol", @token.value)
+      call_compile("compile_term", "term", false)
 
     elsif @token.value == "("
 
       add_symbol("(", true)
       call_compile("compile_expression", "expression", false)
+      add_symbol(")", true)
 
     elsif @token.type == TokenType::IDENTIFIER
 
