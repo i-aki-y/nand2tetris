@@ -34,6 +34,7 @@ def main
     File.open(output_path, "w") { |f| f.puts(xml) }
   else
     engine = CompilationEngine.new(tokenizer)
+    engine.compile
     xml = engine.dump_xml
     File.open(output_path, "w") { |f| f.puts(xml) }
   end
