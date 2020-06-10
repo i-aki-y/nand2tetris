@@ -296,4 +296,100 @@ class TokenizerTest < Test::Unit::TestCase
 
   end
 
+
+  def test_vm_seven
+
+    File.open("../11/Seven/Main.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+
+
+  end
+
+  def test_vm_convert_bin
+    File.open("../11/ConvertToBin/Main.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+  end
+
+
+  def test_vm_array
+    File.open("../11/ComplexArrays/Main.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+  end
+
+  def test_vm_average
+    File.open("../11/Average/Main.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+  end
+
+
+  def test_vm_square
+    File.open("../11/Square/Main.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+    File.open("../11/Square/Square.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+    File.open("../11/Square/SquareGame.jack", "r") { |f|
+      input = f.read()
+      puts input
+      puts "------------------------------------"
+      @engine.reset(input)
+      @engine.compile
+      actual = @engine.dump_vm()
+      puts actual
+    }
+
+
+
+
+
+  end
+
+
 end

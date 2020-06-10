@@ -8,14 +8,19 @@ def main
   params = Hash.new
   opt.on('-i [path]', 'Input file or directory path') {|v| params[:input_path] = Pathname(v) }
   opt.on('--tokenize', 'Output tokenized file') {|v| params[:tokenize] = true }
+  opt.on('--vm', 'Output tokenized file') {|v| params[:vm] = true }
 
   opt.parse(ARGV)
 
+
   input_path = params[:input_path]
   is_tokenize = params[:tokenize]
+  is_vm = params[:vm]
 
   if is_tokenize
     output_path = input_path.sub_ext("T_.xml")
+  elsif is_vm
+    output_path = input_path.sub_ext(".vm")
   else
     output_path = input_path.sub_ext("_.xml")
   end
@@ -35,8 +40,8 @@ def main
   else
     engine = CompilationEngine.new(tokenizer)
     engine.compile
-    xml = engine.dump_xml
-    File.open(output_path, "w") { |f| f.puts(xml) }
+    vm_cmds = engine.dump_vm
+    File.open(output_path, "w") { |f| f.puts(vm_cmds) }
   end
 
 
