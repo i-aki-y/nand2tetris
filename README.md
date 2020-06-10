@@ -20,4 +20,5 @@ Official website: https://www.nand2tetris.org/
 - 11: Compiler part 2
 - 12: (TODO) Operating System
 
-Here, programs assember, vm translator, compiler are written in ruby language.
+Here, programs assembler, vm translator, compiler are written in ruby language.
+The implementation of project 08 and 11 were appended in the script written in 07 and 10, respectively.
